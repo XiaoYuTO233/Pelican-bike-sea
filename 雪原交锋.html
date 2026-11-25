@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>雪原交锋</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: system-ui, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+      color: #eaf2f7;
+      background: #0a1420;
+      --accent: #a6e0e6;
+      --muted: #a5b8c9;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(ellipse at 50% 5%, #192d3f 0%, transparent 66%), #0a1420;
+    }
+    main { width: min(1200px, calc(100% - 64px)); margin: auto; padding: 42px 0 40px; }
+    header { display: flex; align-items: center; gap: 17px; margin: 0 0 23px; }
+    .emblem {
+      width: 42px; height: 42px; display: grid; place-items: center; flex: none;
+      border: 1px solid #50758a; transform: rotate(45deg); border-radius: 9px;
+      background: #1d3546; color: #b8eaf0; margin: 0 7px;
+    }
+    .emblem svg { width: 27px; height: 27px; transform: rotate(-45deg); }
+    h1 {
+      margin: 0; font: 750 clamp(31px, 4.5vw, 50px)/1.12 "Songti SC", "Noto Serif CJK SC", "SimSun", serif;
+      letter-spacing: .09em;
+    }
+    .cast { margin: 7px 0 0; color: var(--muted); font-size: 13px; letter-spacing: .17em; }
+    .player {
+      border: 1px solid #344c60; border-radius: 19px; overflow: hidden;
+      background: #101e2c; box-shadow: 0 22px 80px #030a13a8;
+    }
+    .scene { display: block; width: 100%; height: auto; background: #234763; }
+    .controls { display: grid; grid-template-columns: auto 1fr; gap: 21px; align-items: center; padding: 18px 24px 20px; }
+    button { font: inherit; cursor: pointer; }
+    button:focus-visible, input:focus-visible { outline: 2px solid #fff2bd; outline-offset: 4px; }
+    #play {
+      min-height: 48px; min-width: 100px; padding: 0 12px; display: inline-flex; align-items: center;
+      justify-content: center; gap: 7px; color: #102735; background: var(--accent); border-radius: 10px;
+      border: 0; font-size: 14px; font-weight: 750; white-space: nowrap;
+    }
+    #play:hover { background: #c5f2f2; }
+    #play svg { width: 20px; height: 20px; }
+    #play [hidden] { display: none; }
+    .transport { min-width: 0; }
+    .seek { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; }
+    #progress {
+      --progress: 0%; margin: 0; width: 100%; min-width: 0; height: 24px;
+      appearance: none; background: transparent; cursor: pointer; touch-action: none;
+    }
+    #progress::-webkit-slider-runnable-track {
+      height: 5px; border-radius: 10px;
+      background: linear-gradient(to right, var(--accent) var(--progress), #3b5265 var(--progress));
+    }
+    #progress::-webkit-slider-thumb {
+      appearance: none; margin-top: -5px; width: 15px; height: 15px; border: 2px solid #152735;
+      border-radius: 50%; background: #d9fcfa; box-shadow: 0 0 0 1px #7db9c4;
+    }
+    #progress::-moz-range-track { height: 5px; border-radius: 10px; background: #3b5265; }
+    #progress::-moz-range-progress { height: 5px; border-radius: 10px; background: var(--accent); }
+    #progress::-moz-range-thumb { width: 11px; height: 11px; border-radius: 50%; background: #d9fcfa; border: 2px solid #152735; box-shadow: 0 0 0 1px #7db9c4; }
+    .time { color: #ccdae6; font: 12px/1 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: nowrap; }
+    .time span { color: #91aabd; }
+    .chapters { display: grid; grid-template-columns: 4.25fr 4.25fr 5.5fr; gap: 5px; }
+    .chapters button {
+      min-width: 0; padding: 5px 3px 0; text-align: left; color: var(--muted); font-size: 12px;
+      border: 0; border-top: 1px solid #344b5d; background: transparent; white-space: nowrap;
+    }
+    .chapters button:hover, .chapters button[aria-current="true"] { color: #d3f5f6; border-color: #83bec9; }
+    .shortcut { text-align: right; margin: 12px 1px 0; color: var(--muted); font-size: 12px; }
+    kbd { font: inherit; border: 1px solid #405a6e; border-radius: 4px; padding: 1px 4px; margin-right: 5px; }
+    @media (max-width: 640px) {
+      main { width: calc(100% - 24px); padding: 28px 0 20px; }
+      header { margin-bottom: 18px; gap: 11px; }
+      .emblem { width: 31px; height: 31px; border-radius: 6px; }
+      .emblem svg { width: 22px; height: 22px; }
+      .cast { font-size: 11px; }
+      .player { border-radius: 12px; }
+      .controls { padding: 10px; gap: 9px; }
+      #play { min-width: 71px; min-height: 43px; padding: 0 6px; gap: 2px; font-size: 12px; }
+      #play svg { width: 17px; height: 17px; }
+      .seek { gap: 7px; }
+      .time { font-size: 10px; }
+      .chapters { gap: 3px; }
+      .chapters button { padding-inline: 0; font-size: 11px; }
+    }
+    @media (pointer: coarse) { .shortcut { display: none; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="emblem" aria-hidden="true">
+      <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round">
+        <path d="M16 3v26M5 9l22 14M5 23 27 9M12 6l4 4 4-4m-8 20 4-4 4 4M6 13l5-.4-1.5-5M26 19l-5 .4 1.5 5m3.5-11.4-5-.4 1.5-5M6 19l5 .4-1.5 5"/>
+      </svg>
+    </div>
+    <div><h1>雪原交锋</h1><p class="cast">秦始皇 · 北极熊 · 迪迦</p></div>
+  </header>
+  <section class="player" aria-label="雪原交锋动画播放器">
+    <svg id="scene" class="scene" viewBox="0 0 1200 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="scene-title scene-description">
+      <title id="scene-title">雪原交锋</title>
+      <desc id="scene-description">秦始皇披着朱红斗篷，骑北极熊穿过雪原，端着轻机枪扫射远处的迪迦。迪迦踉跄倒地，扬起一阵雪雾。</desc>
+      <defs>
+        <linearGradient id="sky" x2="0" y2="1" gradientUnits="objectBoundingBox">
+          <stop stop-color="#112c49"/><stop offset=".52" stop-color="#3e6c87"/><stop offset="1" stop-color="#abc3cf"/>
+        </linearGradient>
+        <radialGradient id="horizon"><stop stop-color="#c6ede9" stop-opacity=".92"/><stop offset="1" stop-color="#9ad4d5" stop-opacity="0"/></radialGradient>
+        <radialGradient id="moonHalo"><stop stop-color="#c5f5e8" stop-opacity=".54"/><stop offset="1" stop-color="#9ee8e0" stop-opacity="0"/></radialGradient>
+        <linearGradient id="moon" x2=".67" y2="1"><stop stop-color="#f2faf1"/><stop offset="1" stop-color="#b8dbdf"/></linearGradient>
+        <linearGradient id="aurora" x2="1" y2=".35"><stop stop-color="#72b1be" stop-opacity="0"/><stop offset=".45" stop-color="#9bedce" stop-opacity=".48"/><stop offset="1" stop-color="#69a4cf" stop-opacity="0"/></linearGradient>
+        <linearGradient id="mountain" x2="0" y2="1"><stop stop-color="#668fa5"/><stop offset="1" stop-color="#2d536f"/></linearGradient>
+        <linearGradient id="mountainSnow" x2=".25" y2="1"><stop stop-color="#e4f1ef"/><stop offset="1" stop-color="#789fb3"/></linearGradient>
+        <linearGradient id="snow" x2="0" y2="1"><stop stop-color="#a2c2d3"/><stop offset=".48" stop-color="#d1e3eb"/><stop offset="1" stop-color="#a5c1d2"/></linearGradient>
+        <linearGradient id="drift" x2=".9" y2="1"><stop stop-color="#e1eef0"/><stop offset="1" stop-color="#88adc6"/></linearGradient>
+        <linearGradient id="tree" x2="0" y2="1"><stop stop-color="#284e67"/><stop offset="1" stop-color="#1f3a55"/></linearGradient>
+        <linearGradient id="fur" x2=".4" y2="1"><stop stop-color="#faf9ed"/><stop offset=".47" stop-color="#e1ebec"/><stop offset="1" stop-color="#92afc3"/></linearGradient>
+        <linearGradient id="furShadow" x2="0" y2="1"><stop stop-color="#bbcfd7"/><stop offset="1" stop-color="#7696ae"/></linearGradient>
+        <linearGradient id="cape" x2=".75" y2="1"><stop stop-color="#ca5e59"/><stop offset=".5" stop-color="#8c303c"/><stop offset="1" stop-color="#421d36"/></linearGradient>
+        <linearGradient id="armor" x2=".75" y2="1"><stop stop-color="#435061"/><stop offset=".6" stop-color="#263141"/><stop offset="1" stop-color="#161c2b"/></linearGradient>
+        <linearGradient id="gold" x2=".5" y2="1"><stop stop-color="#ffe2a1"/><stop offset=".44" stop-color="#dca768"/><stop offset="1" stop-color="#895133"/></linearGradient>
+        <linearGradient id="skin" x2=".75" y2="1"><stop stop-color="#efc69b"/><stop offset="1" stop-color="#ad7163"/></linearGradient>
+        <linearGradient id="steel" x2="0" y2="1"><stop stop-color="#707e89"/><stop offset=".38" stop-color="#434e5d"/><stop offset="1" stop-color="#1e2939"/></linearGradient>
+        <linearGradient id="tigaSilver" x2="1" y2=".32"><stop stop-color="#7a9ab4"/><stop offset=".47" stop-color="#e9f1ef"/><stop offset=".76" stop-color="#b6ccd5"/><stop offset="1" stop-color="#627d99"/></linearGradient>
+        <linearGradient id="tigaViolet" x2="1" y2="1"><stop stop-color="#a38aba"/><stop offset="1" stop-color="#4b416f"/></linearGradient>
+        <linearGradient id="tigaRed" x2="1" y2="1"><stop stop-color="#d36c79"/><stop offset="1" stop-color="#773850"/></linearGradient>
+        <radialGradient id="flash"><stop stop-color="#fffedf"/><stop offset=".36" stop-color="#ffdf8b" stop-opacity=".88"/><stop offset="1" stop-color="#fc9a55" stop-opacity="0"/></radialGradient>
+        <radialGradient id="powder"><stop stop-color="#f6fdff" stop-opacity=".81"/><stop offset="1" stop-color="#c4e1ef" stop-opacity="0"/></radialGradient>
+        <radialGradient id="vignette" cx=".52" cy=".46" r=".72"><stop offset=".49" stop-color="#101d39" stop-opacity="0"/><stop offset="1" stop-color="#13223a" stop-opacity=".43"/></radialGradient>
+        <pattern id="greca" width="13" height="7" patternUnits="userSpaceOnUse">
+          <path d="M0 5.5h3V1.5h7v4H6V3.6h2" fill="none" stroke="#edbd7c" stroke-width="1"/>
+        </pattern>
+        <g id="fir">
+          <path d="M-2 0l1-68h3L3 0Z" fill="#2b4056"/>
+          <path d="M0-94 9-69l-4-2 11 17-7-3 14 20-8-3 15 22-15-4 4 7-17-5-2 6-5-5-17 5 5-8-14 6 16-24-9 4 14-20-7 2 11-17-5 2Z" fill="url(#tree)"/>
+          <path d="m0-91-2 22-8 12 8-2-1 9-14 12 9-2 6 4-20 16 13-2 8-6-1-14 7 2-4-14 4 2-7-16 6 4Z" fill="#bcd6df" opacity=".78"/>
+          <path d="m7-56 12 17-9-4m5 15 12 9-15-4M-5-30l-18 11 10-2" fill="none" stroke="#e6f3f1" stroke-width="1.5" opacity=".77"/>
+        </g>
+        <g id="iceGrass" fill="none" stroke-linecap="round">
+          <path d="M0 0q-7-9-14-10M-1 0q0-8-5-16M1 0q4-11 11-13M2 0q10-6 16-6" stroke="#547891" stroke-width="1.3"/>
+          <path d="M-15-11l5 2m3-8 3 5m17-2-5 4" stroke="#ecf7f6" stroke-width="1.6"/>
+        </g>
+        <g id="track">
+          <ellipse rx="10" ry="3.7" fill="#597b94" opacity=".49"/>
+          <path d="M-10 1q7 5 18 1" fill="none" stroke="#eef8fa" stroke-width="1.05" opacity=".72"/>
+          <circle cx="6" cy="-3" r="1.3" fill="#597b94" opacity=".43"/>
+          <circle cx="10" cy="-2" r="1" fill="#597b94" opacity=".43"/>
+        </g>
+      </defs>
+      <rect width="1200" height="560" fill="url(#sky)"/>
+      <ellipse cx="804" cy="278" rx="550" ry="242" fill="url(#horizon)" opacity=".78"/>
+      <g id="sky-motion">
+        <path d="M-60 136C119 154 233 71 377 52c174-23 264 60 417 42C943 77 1000 28 1270 49L1260 1c-228 1-324 57-455 63C623 73 554-9 382 20 226 48 103 134-62 114Z" fill="url(#aurora)" opacity=".76"/>
+        <path d="M-30 173C133 166 226 113 368 91S621 123 738 123c164 0 248-78 432-73" fill="none" stroke="url(#aurora)" stroke-width="3" opacity=".73"/>
+        <path d="M134 136c96-27 216-87 324-83 82 3 171 46 269 50" fill="none" stroke="url(#aurora)" stroke-width="12" opacity=".43"/>
+      </g>
+      <g id="stars" fill="#e3fbf5"/>
+      <g transform="translate(794 135)">
+        <circle r="114" fill="url(#moonHalo)"/>
+        <circle r="61" fill="url(#moon)"/>
+        <path d="M-48-34q23-40 64-22Q-14-46-20-28q-7 17-28 16Zm28 71q21-2 29-16c9-13 26-17 43-15-4 25-19 39-43 47q-20 3-29-16ZM28-43q21 6 24 25-12 3-18-6Z" fill="#7ba5b5" opacity=".16"/>
+        <circle cx="-26" cy="10" r="10" fill="#618fa7" opacity=".11"/>
+        <circle cy="-24" r="7" fill="#618fa7" opacity=".1"/>
+      </g>
+      <path d="M0 278 98 193l30-10 65 52 98-82 41 27 75 93 109-55 47-13 105 66 57-34 62 19 92-77 46 9 96 72 104-105 38-28 37 38v191H0Z" fill="#7ca0b4" opacity=".57"/>
+      <path d="m0 310 66-48 39 7 90-63 57 40 106-118 28-23 42 58 22 7 55 75 37 26 82-54 37 18 42 40 62-38 58 20 102-46 56 58 68-53 54-64 39 20 58 86v105H0Z" fill="url(#mountain)"/>
+      <path d="m162 231 33-25 57 40 106-118 28-23 42 58 22 7 55 75-33-16-24-2-25-27-12-4-36-54-15 27-11 3-18 31-25 11-43 53 13-32-28 29-13-15-43-30-17 10Zm451-7 11-7 37 18 42 40-36-18-12 1-22-21-17 3-16 15-17 2Zm358 34 78-42 54-64 39 20 41 60-40-27-7-14-22-9-11 10-16 20-18 1-34 32-31 13Z" fill="url(#mountainSnow)"/>
+      <path d="m386 105 42 58 22 7 55 75-43-42-17 4-16-18-13-3-21-31-8-10-11 19-12 4-14 25-19 10 18-25 10-26Zm717 47 39 20 41 60-40-34-12-21-20-8-22 28-17 4Z" fill="#e5efec" opacity=".7"/>
+      <path d="M0 295c167-22 247 31 401 7 132-20 238-27 355-9 144 21 298-29 444 6v108H0Z" fill="#597f99"/>
+      <g id="distant-firs" opacity=".59"/>
+      <path d="M0 330c145-38 253 18 401 6 128-10 209-34 331-32 126 1 272 42 468 10v116H0Z" fill="#9cb9ca" opacity=".74"/>
+      <g opacity=".88">
+        <use href="#fir" transform="translate(12 364) scale(1.1)"/><use href="#fir" transform="translate(42 355) scale(.66)"/>
+        <use href="#fir" transform="translate(67 354) scale(.95)"/><use href="#fir" transform="translate(92 352) scale(.65)"/>
+        <use href="#fir" transform="translate(114 350) scale(.43)"/><use href="#fir" transform="translate(145 351) scale(.48)"/>
+        <use href="#fir" transform="translate(1078 366) scale(.46)"/><use href="#fir" transform="translate(1104 370) scale(.72)"/>
+        <use href="#fir" transform="translate(1139 375) scale(.58)"/><use href="#fir" transform="translate(1170 378) scale(1.21)"/>
+        <use href="#fir" transform="translate(1200 378) scale(.9)"/>
+      </g>
+      <path d="M0 359c156-36 259 19 397 7 153-14 216-43 373-24 127 16 224 20 430 0v218H0Z" fill="url(#snow)"/>
+      <path d="M0 360c139-32 218 14 343 8 187-8 283-46 427-26 143 19 243 20 430 0-73 17-170 24-239 24-70 0-139-5-207-14-125-16-270 22-393 28C201 389 166 348 0 372Z" fill="#e5eff0" opacity=".69"/>
+      <path d="M434 393c137 5 221-32 344-28 78 2 139 18 219 15 62-3 135-9 203-15v10c-69 9-137 20-206 22-97 1-148-22-219-23-105-2-197 27-341 19Z" fill="#edf5f5" opacity=".45"/>
+      <path d="M0 443c153-37 234-25 333-5 144 29 245-1 355-15 166-22 347 14 512-25v162H0Z" fill="url(#drift)" opacity=".81"/>
+      <path d="M0 497c101-47 207-1 321 3 159 8 252-59 426-51 167 8 290 10 453-23v134H0Z" fill="#769cb8" opacity=".19"/>
+      <path d="M0 512c112-46 191 6 338 5 128-1 210-57 350-51 70 3 122 9 190 6-69 10-112 3-185 2-151-3-199 63-377 62-151-1-205-32-316 8Z" fill="#edf6f8" opacity=".42"/>
+      <path d="M846 468c143-18 217 1 354-24m-1143-60c115-28 193 11 292 2m75 68c88 4 132-18 205-24m-79 96c131-37 239-30 369-38" fill="none" stroke="#e9f5f7" stroke-linecap="round" stroke-width="2.2" opacity=".57"/>
+      <g id="snow-grain" fill="#58819b"/>
+      <g fill="#789eb5" opacity=".61">
+        <path d="M21 454q16-7 42-4-14 5-42 4Zm556 30q27-11 66-8-22 8-66 8Zm220-88q19-7 39-3-19 5-39 3Zm188 62q19-8 40-5-16 6-40 5Zm122-57q24-8 54-6-27 5-54 6Zm-673 117q28-9 60-8-28 7-60 8Z"/>
+      </g>
+      <g opacity=".8">
+        <use href="#iceGrass" transform="translate(48 477) scale(.85)"/><use href="#iceGrass" transform="translate(70 492) scale(.45)"/>
+        <use href="#iceGrass" transform="translate(568 489) scale(.64)"/><use href="#iceGrass" transform="translate(609 496) scale(.35)"/>
+        <use href="#iceGrass" transform="translate(785 420) scale(.48)"/><use href="#iceGrass" transform="translate(1116 487) scale(.78)"/>
+        <use href="#iceGrass" transform="translate(1138 500) scale(.56)"/><use href="#iceGrass" transform="translate(1096 487) scale(.39)"/>
+      </g>
+      <g id="tracks"/>
+      <ellipse id="tiga-shadow" cx="945" cy="418" rx="31" ry="5" fill="#547a96" opacity=".43"/>
+      <g id="tiga" transform="translate(945 341) scale(.86)" stroke="#37435f" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <g id="tiga-left-leg">
+          <path d="M-21-3-3 0-7 37-15 75-14 85q-3 6-19 4-7-2-4-8l9-9 4-39Z" fill="url(#tigaSilver)"/>
+          <path d="m-21 1 11 1-3 25-10 16 1-15Zm4 43-6 30 2 8-12 4-4-3 10-12 5-25Z" fill="url(#tigaRed)" stroke="none"/>
+          <path d="m-22 43 4-12 5-5-4 18-4 11Z" fill="#816e9f" stroke="none"/>
+        </g>
+        <g id="tiga-right-leg">
+          <path d="M3 0 23-5l1 36 7 45 8 6q2 8-13 8l-12-3-2-12-8-37Z" fill="url(#tigaSilver)"/>
+          <path d="m13 0 9-4 1 35 7 45 8 7-4 4-13-4-3-18-4-21-4-16Z" fill="url(#tigaRed)" stroke="none"/>
+          <path d="m11 27 8 16 3 18-6-8Z" fill="#816e9f" stroke="none"/>
+        </g>
+        <g id="tiga-right-arm">
+          <path d="M19-54q10-9 18 0l9 26 5 32-2 7 2 9q-5 8-13 2l-4-9 3-8-7-25-10-18Z" fill="url(#tigaSilver)"/>
+          <path d="m25-55 8-1 12 27 5 31-9 3-1-13-8-18-7-15Z" fill="url(#tigaViolet)" stroke="none"/>
+          <path d="m40-9 6-5 4 16-8 3Z" fill="#b85e73" stroke="none"/>
+        </g>
+        <g id="tiga-left-arm">
+          <path d="M-33-58q-7 1-11 9l-10 26-4 24-6 8q-1 7 6 11 6 4 12-3l1-11 8-22 13-21Z" fill="url(#tigaSilver)"/>
+          <path d="m-31-56-8 4-13 29-4 20 9 4 8-24 11-16Z" fill="url(#tigaViolet)" stroke="none"/>
+          <path d="m-53-17 8 2-4 13-7 1Z" fill="#b85e73" stroke="none"/>
+        </g>
+        <path d="M-12-66h24l5 7 16 5-5 25-9 19 3 11-6 10L0 6l-15 6-8-9 3-16-9-19-6-20 17-7Z" fill="url(#tigaSilver)"/>
+        <path d="M-31-49q18-1 31 13 12-12 31-13l-6 17-9 8-3 12q-13 11-27 0l-4-14-9-7Z" fill="url(#tigaViolet)" stroke="none"/>
+        <path d="m-30-44 9 4 8 11 13 8 13-8 8-11 9-4-9 15-10 7L3-7h-7l-8-15-10-7Z" fill="#e2e9e1" stroke="none"/>
+        <path d="M-22-13q9 3 13 10L0 3l9-6q4-8 12-10l2 16-7 8L0 6l-15 6-8-9Z" fill="url(#tigaRed)" stroke="none"/>
+        <path d="M-29-49q15 1 25 14m33-14q-15 1-25 14" fill="none" stroke="#e9c78d" stroke-width="2.5"/>
+        <path d="M0-39 7-33 4-25h-8l-3-8Z" fill="#426a8b"/>
+        <circle id="tiga-light" cy="-32" r="4.2" fill="#a7fbff" stroke="none"/>
+        <g id="tiga-head">
+          <path d="M-17-82q-4-13 4-23L0-116l12 9q9 10 6 25l-6 17L0-59l-10-5Z" fill="url(#tigaSilver)"/>
+          <path d="m0-116 1 22-5 6-4-10 3-13Z" fill="#f2f6ea" stroke="none"/>
+          <path d="M-18-91q9-2 16 7-2 5-8 4-6-3-8-11Zm36 0q-9-2-16 7 2 5 8 4 6-3 8-11Z" fill="#fff6bc" stroke="#78656e" stroke-width="1"/>
+          <path d="M-18-89q9 0 14 4m22-4q-9 0-14 4" fill="none" stroke="#fffdeb" stroke-width="1.15"/>
+          <path d="m-12-76 7 4 5-2 5 2 7-4M-5-67h10" fill="none" stroke="#63778e" stroke-width="1.2"/>
+          <path d="m-2-99 2-5 2 5-2 3Z" fill="#a4ebed" stroke="none"/>
+        </g>
+      </g>
+      <g id="landing-snow"/>
+      <ellipse id="bear-shadow" cx="218" cy="453" rx="143" ry="14" fill="#537792" opacity=".36"/>
+      <g id="bear-rider" transform="translate(219 450) scale(.98)" stroke-linecap="round" stroke-linejoin="round">
+        <g id="far-hind" transform="translate(-86 -65)" stroke="#56728c" stroke-width="2.25">
+          <path d="M-21-4q13-10 35 0L13 24 7 43l12 15q3 8-7 8H-9q-10-1-10-9l4-23-5-18Z" fill="url(#furShadow)"/>
+          <path d="m-9 55 14-2 10 6q-1 4-8 4H-7Z" fill="#c0d1d9" stroke="none"/>
+        </g>
+        <g id="far-front" transform="translate(74 -63)" stroke="#56728c" stroke-width="2.25">
+          <path d="M-12-7q20-8 29 4l-4 21 1 20 4 16 9 4q6 8-5 9H0q-10-1-12-11l3-19-6-19Z" fill="url(#furShadow)"/>
+          <path d="M4 52q10 0 16 5l4 4q-3 4-16 2H1Z" fill="#c5d6db" stroke="none"/>
+        </g>
+        <g id="bear-body">
+          <path d="M-111-80q-14-2-16 11 1 9 15 6l11-10Z" fill="url(#furShadow)" stroke="#54738c" stroke-width="2.4"/>
+          <path d="M-116-61q0-26 25-41 24-15 56-11L1-108q22-3 42-14 26-13 55 5 16 9 20 30 4 27-18 39l-27 9q-41 13-83 8l-38-3q-23 7-45-2-25-11-23-25Z" fill="url(#fur)" stroke="#57758e" stroke-width="2.5"/>
+          <path d="M-113-65q11 18 40 19 19 2 41-3 52 13 107 1l22-8q-20 21-56 25-38 6-89-3-34 10-57-11Z" fill="#789bb4" opacity=".31"/>
+          <path d="M-101-85q22-25 55-22m-60 35 14-10m-3 15 12-7m-8 16 12-5m99 9 16-5m-9 14 13-5" fill="none" stroke="#f9fcf5" stroke-width="2" opacity=".68"/>
+          <path d="M50-118q15-4 32 0m-139 79q18-1 35 3" fill="none" stroke="#f1f7f1" stroke-width="1.7"/>
+        </g>
+        <g id="near-hind" transform="translate(-79 -60)" stroke="#58758b" stroke-width="2.2">
+          <path d="M-28-19q14-17 42-12 18 5 19 22-1 17-20 33L5 36l7 12 9 6q8 8-2 10L-7 65q-12-1-13-11l4-23-6-13q-11-16-6-37Z" fill="url(#fur)"/>
+          <path d="M-23-11q-2 18 16 34m-2 7-3 13m6 11 9-1m10 4 2 5m-7-4 1 5" fill="none" stroke="#91acbd" stroke-width="1.6"/>
+          <path d="m-25-16 6-6m-7 13 9-7m-10 15 9-7" stroke="#f5f8f1" stroke-width="1.75"/>
+        </g>
+        <g id="near-front" transform="translate(57 -62)" stroke="#58758b" stroke-width="2.2">
+          <path d="M-21-18q20-15 41-1 13 12 6 29L15 27l1 18 10 10q7 8-5 10H-1q-14-1-16-12l3-21-7-22q-7-17 0-28Z" fill="url(#fur)"/>
+          <path d="m-15 3 7 16m21 6-7 17 4 9m0 6 2 6m6-5 2 4" stroke="#8ca7ba" fill="none" stroke-width="1.6"/>
+          <path d="m-20-12 9-7m-10 15 9-7m-8 13 8-6" stroke="#fbfbf3" stroke-width="1.75"/>
+        </g>
+        <g id="bear-head">
+          <path d="M55-98q-2-22 16-36l20-6q19-13 43-2 15 6 23 19l12 8 23 10q5 3 4 13l-6 9-19 6-15 1q-11 13-32 14l-32-8-21-1Z" fill="url(#fur)" stroke="#527187" stroke-width="2.5"/>
+          <path d="M70-79q14-4 30 0l22 5 22-2 14-9 26-1 8-5-3 8-17 6-16 1q-10 12-32 14l-31-8-17-1Z" fill="#85a3b8" opacity=".5"/>
+          <path d="M86-134q-7-10 0-20 7-8 16-4 9 4 7 14l-6 8Z" fill="url(#fur)" stroke="#57758e" stroke-width="2.2"/>
+          <path d="M91-141q-3-10 5-11 7 0 6 8Z" fill="#93aebf"/>
+          <path d="M133-143q2-10 10-9 8 1 9 9l-4 7Z" fill="url(#furShadow)" stroke="#5f7b91" stroke-width="1.6"/>
+          <path d="M145-120q13 4 22 12l21 4 3 8-8 9-26 2q-15-3-19-13Z" fill="#edf1eb"/>
+          <path d="M183-105q11-4 15 4 2 6-5 12-5 3-11-1l-2-7Z" fill="#263241" stroke="#435970" stroke-width="1.5"/>
+          <path d="m184-101 7-1" stroke="#8ea5b2" stroke-width="1.6"/>
+          <path d="M145-124q7-4 12 1" fill="none" stroke="#586f81" stroke-width="2.2"/>
+          <ellipse cx="151" cy="-119" rx="3.1" ry="3.5" fill="#243747"/><circle cx="152" cy="-120.3" r=".9" fill="#f6fbf3"/>
+          <path d="M157-93q12 6 27 1m-78-12 12-5m-10 13 15-4m-11 12 13-3" fill="none" stroke="#849cb0" stroke-width="1.6"/>
+          <path d="M92-124q12-9 25-10M80-106l13-10m-9 13 9-5" fill="none" stroke="#fafbf1" stroke-width="2.1"/>
+        </g>
+        <path d="M-60-110q43-14 85 1l-3 49q-31 16-73 2Z" fill="#5f2d40" stroke="#3e293b" stroke-width="2"/>
+        <path d="M-55-106q37-11 74 1l-4 42q-29 13-61 1Z" fill="#a14a4f" stroke="#dcaa70" stroke-width="1.7"/>
+        <path d="m-54-73 11 3 2 7 8-5 12 1 7 5 7-6 12-2 7-6" fill="none" stroke="#e7b47c" stroke-width="1.55"/>
+        <path d="M-67-107q35-14 80-8l14 8-10 9q-44-10-78 0Z" fill="#342738" stroke="#ab765d" stroke-width="1.8"/>
+        <path d="M32-105q2 27 19 56l8-2q-13-21-18-60Z" fill="#644452" stroke="#533845" stroke-width="1.4"/>
+        <path d="m49-60 8-2 5 10-8 3Z" fill="url(#gold)" stroke="#725851" stroke-width="1.1"/>
+        <g id="emperor" transform="translate(-15 -109)">
+          <path id="cape-back" d="M-24-60C-56-48-67-6-124 2q35 24 69 19L12 6 8-59Z" fill="url(#cape)" stroke="#4a2b40" stroke-width="2.6"/>
+          <path id="cape-hem" d="M-124 2q35 24 69 19L12 6" fill="none" stroke="#e0a36c" stroke-width="1.65"/>
+          <path id="cape-fold" d="M-29-47Q-57-1-115 7m54-5q31-13 43-35" fill="none" stroke="#e18072" stroke-width="1.8" opacity=".55"/>
+          <path d="M17-10q20 3 31 14l-3 13-15 19 4 7-7 7-18-1-9-6 7-10 9-20-16-6Z" fill="url(#armor)" stroke="#232231" stroke-width="2.4"/>
+          <path d="m31 11-12 25 7 8m-15 0 17 2" stroke="#b47d55" stroke-width="1.5" fill="none"/>
+          <path d="M-23-65 13-63q15 3 21 17l-7 33-8 16q-18 13-51 1l3-26-9-22Z" fill="url(#armor)" stroke="#282435" stroke-width="2.4"/>
+          <path d="M-24-62 6-51 19-60l8 8-17 18-30-18Z" fill="#964553" stroke="#d9a76f" stroke-width="1.8"/>
+          <path d="M-29-23q22 10 53 4l-2 13Q-6 1-32-10Z" fill="#30283a" stroke="#b88257" stroke-width="1.8"/>
+          <path d="M-27-21q18 7 46 4l-1 4q-29 4-46-4Z" fill="url(#greca)"/>
+          <path d="M-8-23q10-3 12 5-1 9-10 7-9-3-2-12Z" fill="url(#gold)" stroke="#775344" stroke-width="1.6"/>
+          <path d="m-7-17 4-2 3 3-4 3Z" fill="#704756"/>
+          <path d="M-34-59q10-7 22 0l7 13-11 13-21-2-5-12Z" fill="url(#gold)" stroke="#513f46" stroke-width="2.1"/>
+          <path d="m-36-50 16-5 8 8-7 8-15-1m-2-7 10 3 4-5" fill="none" stroke="#87533f" stroke-width="1.45"/>
+          <path d="M-10-72 10-76l7 15-15 8-16-9Z" fill="url(#skin)" stroke="#573e44" stroke-width="1.8"/>
+          <path d="M-18-102q10-13 29-8 17 5 19 17l3 8 7 7-9 4-1 12-11 5-18-4-12-10-6-15Z" fill="url(#skin)" stroke="#593c44" stroke-width="2"/>
+          <path d="M-20-103q9-13 28-13 16 0 23 11l-2 13-6-8-23 4-5 16-6-2-3 12q-12-10-11-23Z" fill="#272331"/>
+          <path d="M6-87q-8-6-10 2 1 8 9 7" fill="url(#skin)" stroke="#925a55" stroke-width="1.5"/>
+          <path d="M15-89q6-4 12-1" fill="none" stroke="#3a2a36" stroke-width="2.5"/>
+          <path d="m19-84 7-1" stroke="#3a2a36" stroke-width="1.7"/>
+          <path d="M16-75q8-5 14-1l2 4-12-1-8 6Z" fill="#382b38"/>
+          <path d="M6-71q8 5 16 5l9-3-2 12q-4 5-11 7l-6-2q7-6 1-11L6-64Z" fill="#342738" stroke="#45303b" stroke-width="1.15"/>
+          <path d="m22-62 5-3m-8 7 5-3" stroke="#7e5653" stroke-width="1.05"/>
+          <path d="M-21-111q3-19 20-20 20-2 25 17l-3 7Z" fill="url(#armor)" stroke="#342937" stroke-width="1.9"/>
+          <path d="M-22-112 26-115l1 5-49 4Z" fill="url(#gold)"/>
+          <path d="m-40-126 78-5 10 4-76 9Z" fill="#6b404b" stroke="#3c2b39" stroke-width="1.8"/>
+          <path d="m-40-126 76-5 10 2-74 7Z" fill="url(#gold)" stroke="#60454c" stroke-width=".95"/>
+          <path d="m-36-123 9 3 74-7-1 4-74 7-7-4Z" fill="#2d2838" stroke="#ca965d" stroke-width="1.4"/>
+          <g id="crown-beads" fill="#ebca8e" stroke="#bf955f" stroke-width=".8">
+            <path d="m-33-120-1 20m5-19-1 24m4-24 1 23m57-29 2 21m3-21 3 23m3-24 3 22m2-22 3 18" fill="none"/>
+            <path d="m-34-110 1 0m3 2h1m3-2h1m60-7h1m4 0h1m3-1h1m4-1h1" stroke="#f7dfaa" stroke-width="2.2"/>
+            <circle cx="-34" cy="-100" r="1.6"/><circle cx="-30" cy="-95" r="1.7"/><circle cx="-25" cy="-96" r="1.6"/>
+            <circle cx="34" cy="-104" r="1.65"/><circle cx="40" cy="-102" r="1.65"/><circle cx="46" cy="-104" r="1.65"/><circle cx="51" cy="-108" r="1.65"/>
+          </g>
+          <g transform="translate(18 -47)">
+            <g id="weapon-pose">
+              <path d="M1-6q10-4 19 3L32 7l37-7 5 10-43 12-12-1L3 14Z" fill="#444353" stroke="#282637" stroke-width="2"/>
+              <g id="weapon">
+                <path d="M9-12q18 1 27-5h51l10 4 28 1v12l-32 1-8 6H39L26 1l-16 6-6-6Z" fill="url(#steel)" stroke="#25303b" stroke-width="2.1"/>
+                <path d="M42-20h34q7 0 11 4v6H40Z" fill="#63717e" stroke="#26313d" stroke-width="1.8"/>
+                <path d="M81-7h49l7 2h39v4h-40l-7 3H85Z" fill="#3d4d5d" stroke="#202c3a" stroke-width="1.75"/>
+                <path d="M173-7h10v8h-10Z" fill="#596674" stroke="#202c3a" stroke-width="1.55"/>
+                <path d="M48 3h29q3 13-4 21-10 5-24-1Z" fill="#515364" stroke="#272936" stroke-width="1.8"/>
+                <path d="M51 8q13 6 24 0m-21 9q10 4 19 0" fill="none" stroke="#9f856c" stroke-width="1.35"/>
+                <path d="M45-13h37m-34 4h9m4 0h9m4 0h7m10 0h33m13 4h30" stroke="#9ba8ae" stroke-width="1.1"/>
+                <path d="M99-6h4m4 0h4m4 0h4m4 0h3" stroke="#263744" stroke-width="1.6"/>
+                <path d="m41 3-5 12-8-2 3-12m101-8 2-6h3v6" fill="#4d4852" stroke="#302f3b" stroke-width="1.5"/>
+              </g>
+              <path d="M-26-8q7-9 20-5l19 13 15-1 3 9-18 7-17-3-24-9Z" fill="url(#armor)" stroke="#2d2938" stroke-width="2"/>
+              <path d="M-25-7-7-5 7 5l18-1" fill="none" stroke="#ce995f" stroke-width="1.9"/>
+              <path d="M22 0q9-6 14-2l4 5-7 6-10-1Z" fill="url(#skin)" stroke="#6d4c51" stroke-width="1.6"/>
+              <path d="M62 9q3-7 12-7l6 2-1 6-9 5-8-2Z" fill="url(#skin)" stroke="#6d4c51" stroke-width="1.5"/>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g id="foot-snow"/>
+      <g id="ground-wind" fill="none" stroke="#f4fcfd" stroke-linecap="round">
+        <path d="M-32 522c61-17 120-18 176-14m507-30c47-5 94-5 140 1m233 48c48-3 103-14 164-25M-20 403c39-8 73-10 107-9" stroke-width="1.6" opacity=".35"/>
+        <path d="M128 544q48 3 95 0m586-106q43-2 90 2m131-54q56 1 107-5" stroke-width="1.2" opacity=".35"/>
+      </g>
+      <g id="shot-effects">
+        <g id="tracers" fill="none" stroke-linecap="round"/>
+        <g id="impact-sparks" fill="none" stroke-linecap="round"/>
+        <g id="muzzle" opacity="0">
+          <circle r="51" fill="url(#flash)" opacity=".72"/>
+          <path d="m-8 1 16-7 7-16 6 14 33-10-16 17 20 5-28 3 5 12-22-9-11 6 3-11Z" fill="#f6aa57"/>
+          <path d="M-5 0 14-6l4-8 5 10 17-3-12 9 10 3-17-2-8 8-1-7Z" fill="#fff1ad"/>
+          <path d="M-4 0 13-3 19 0 13 3Z" fill="#fffcec"/>
+        </g>
+        <g id="muzzle-smoke"/>
+      </g>
+      <g id="snowflakes" fill="#f7fcff"/>
+      <rect width="1200" height="560" fill="url(#vignette)" pointer-events="none"/>
+    </svg>
+    <div class="controls">
+      <button id="play" type="button" aria-label="播放动画">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path id="play-icon" d="M7 4.9a.9.9 0 0 1 1.4-.8l11 7.1a.9.9 0 0 1 0 1.6l-11 7.1a.9.9 0 0 1-1.4-.8Z"/>
+          <path id="pause-icon" d="M7 5h3.1v14H7Zm6.9 0H17v14h-3.1Z" hidden/>
+          <path id="replay-icon" d="M12 4a8 8 0 1 1-7.7 10.2l1.9-.5A6 6 0 1 0 7 8.7h3V11H3V4h2v3.6A8 8 0 0 1 12 4Z" hidden/>
+        </svg>
+        <span id="play-label">播放</span>
+      </button>
+      <div class="transport">
+        <div class="seek">
+          <input id="progress" type="range" min="0" max="14" step="0.01" value="0" aria-label="播放进度" aria-valuetext="0.0 秒，共 14 秒">
+          <div class="time"><output id="elapsed" for="progress">00:00.0</output><span> / 00:14.0</span></div>
+        </div>
+        <nav class="chapters" aria-label="动画段落">
+          <button type="button" data-time="0" aria-current="true">雪地行进</button>
+          <button type="button" data-time="4.25" aria-current="false">扫射受击</button>
+          <button type="button" data-time="8.50" aria-current="false">倒在雪地</button>
+        </nav>
+      </div>
+    </div>
+  </section>
+  <p class="shortcut"><kbd>空格</kbd>播放 / 暂停</p>
+</main>
+<script>
+  (() => {
+    'use strict';
+
+    const duration = 14;
+    const fireStart = 4.25;
+    const fallStart = 8.5;
+    const landingTime = 9.62;
+    const shotTimes = [4.39, 4.56, 4.75, 4.93, 5.37, 5.54, 5.73, 5.92,
+      6.39, 6.57, 6.76, 6.96, 7.48, 7.66, 7.85, 8.04, 8.26];
+    const flightTime = .21;
+    const walkPeriod = 1.24;
+    const bearScale = .98;
+    const tigaScale = .88;
+    const tau = Math.PI * 2;
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const byId = (id) => document.getElementById(id);
+    const clamp = (value) => Math.max(0, Math.min(1, value));
+    const blend = (start, end, amount) => start + (end - start) * amount;
+    const smooth = (value) => {
+      const amount = clamp(value);
+      return amount * amount * (3 - 2 * amount);
+    };
+    const wrap = (value, length) => ((value % length) + length) % length;
+    const rotatePoint = (x, y, degrees) => {
+      const angle = degrees * Math.PI / 180;
+      return { x: x * Math.cos(angle) - y * Math.sin(angle), y: x * Math.sin(angle) + y * Math.cos(angle) };
+    };
+    function attrs(element, values) {
+      for (const [name, value] of Object.entries(values)) element.setAttribute(name, value);
+    }
+    function make(tag, parent, values = {}) {
+      const element = document.createElementNS(svgNS, tag);
+      attrs(element, values);
+      parent.append(element);
+      return element;
+    }
+
+    let randomSeed = 17253;
+    function rand() {
+      randomSeed = (Math.imul(1664525, randomSeed) + 1013904223) >>> 0;
+      return randomSeed / 4294967296;
+    }
+    const scene = Object.fromEntries([
+      'sky-motion', 'ground-wind', 'bear-rider', 'bear-shadow', 'bear-head', 'emperor', 'cape-back',
+      'cape-fold', 'cape-hem', 'crown-beads', 'weapon-pose', 'weapon', 'tiga', 'tiga-shadow',
+      'tiga-head', 'tiga-light', 'tiga-left-arm', 'tiga-right-arm', 'tiga-left-leg', 'tiga-right-leg', 'muzzle'
+    ].map((id) => [id, byId(id)]));
+
+    for (let i = 0; i < 71; i++) {
+      make('circle', byId('stars'), { cx: rand() * 1200, cy: rand() * 209,
+        r: blend(.45, 1.35, rand()), opacity: blend(.18, .67, rand()) });
+    }
+    for (let i = 0; i < 98; i++) {
+      const x = i * 12.6 + rand() * 12 - 15;
+      const y = 334 - Math.sin(x * .005) * 10 + rand() * 9;
+      make('use', byId('distant-firs'), { href: '#fir', transform: `translate(${x} ${y}) scale(${blend(.18, .64, rand())})` });
+    }
+    for (let i = 0; i < 250; i++) {
+      const y = blend(374, 568, rand());
+      make('ellipse', byId('snow-grain'), { cx: rand() * 1200, cy: y,
+        rx: blend(.7, 3.8, rand()), ry: blend(.22, .82, rand()), opacity: blend(.12, .38, rand()) });
+    }
+
+    const legs = [
+      { element: byId('far-hind'), x: -86, y: -65, offset: .15, stride: 12 },
+      { element: byId('far-front'), x: 74, y: -63, offset: .62, stride: 13 },
+      { element: byId('near-hind'), x: -79, y: -60, offset: .65, stride: 15 },
+      { element: byId('near-front'), x: 57, y: -62, offset: .12, stride: 16 }
+    ];
+    const flakes = Array.from({ length: 112 }, (_, index) => {
+      const near = index >= 85;
+      return { element: make('circle', byId('snowflakes'), { r: near ? blend(1.4, 2.9, rand()) : blend(.45, 1.45, rand()) }),
+        x: rand() * 1232, y: rand() * 589, vx: near ? blend(47, 78, rand()) : blend(10, 38, rand()),
+        vy: near ? blend(27, 44, rand()) : blend(10, 27, rand()), drift: rand() * tau,
+        opacity: near ? blend(.19, .55, rand()) : blend(.24, .67, rand()) };
+    });
+
+    function bearPose(time) {
+      const effort = (1 - .49 * smooth((time - 3.65) / 1.3)) * (1 - smooth((time - 11.65) / 1.56));
+      const stride = time / walkPeriod;
+      const bob = -Math.cos(stride * tau * 2) * 1.65 * effort;
+      const easedDistance = time >= 0 ? 184 * (1 - Math.exp(-time / 7.7)) : 23.9 * time;
+      return { x: 219 + easedDistance, y: 450 + bob - easedDistance * .019, stride, effort, bob,
+        riderAngle: Math.sin(stride * tau) * effort * 1.35,
+        riderY: -109 + Math.sin(stride * tau * 2 + .6) * 1.15 * effort };
+    }
+    const prints = legs.flatMap((leg, index) => {
+      return Array.from({ length: 14 }, (_, step) => {
+        const time = (step - 3 + .50 - leg.offset) * walkPeriod;
+        const pose = bearPose(time);
+        const x = pose.x + bearScale * (leg.x + (index % 2 ? 2 : -7));
+        const y = 454 - (pose.x - 219) * .019 + (index > 1 ? 4 : -2);
+        const element = make('use', byId('tracks'), { href: '#track',
+          transform: `translate(${x} ${y}) scale(${index > 1 ? 1 : .72})` });
+        const puff = make('circle', byId('foot-snow'), { fill: 'url(#powder)', opacity: 0 });
+        return { time, x, y, element, puff };
+      });
+    });
+
+    function shotAge(time, offset) {
+      let latest = Infinity;
+      for (const moment of shotTimes) {
+        const age = time - (moment + offset);
+        if (age >= 0) latest = age;
+      }
+      return latest;
+    }
+
+    function weaponPose(time) {
+      const lift = smooth((time - 3.02) / 1.26);
+      const lower = smooth((time - 8.55) / 1.05);
+      const recoil = Math.exp(-shotAge(time, 0) * 22);
+      const sweep = Math.sin((time - fireStart) * 5.4) * 2.7 + Math.sin(time * 9.5) * .38;
+      const angle = blend(11.5 + Math.sin(time * 4.8), 1.5 + sweep, lift * (1 - lower)) - 2.9 * recoil;
+      return { angle, recoil };
+    }
+
+    function muzzlePoint(time) {
+      const rider = bearPose(time);
+      const weapon = weaponPose(time);
+      const barrel = rotatePoint(184 - weapon.recoil * 5.1, -3, weapon.angle);
+      const seat = rotatePoint(18 + barrel.x, -47 + barrel.y, rider.riderAngle);
+      return { x: rider.x + bearScale * (-15 + seat.x), y: rider.y + bearScale * (rider.riderY + seat.y),
+        angle: weapon.angle + rider.riderAngle };
+    }
+
+    function tigaPose(time) {
+      const impactAge = shotAge(time, flightTime);
+      const hit = Math.exp(-impactAge * 9);
+      const fall = clamp((time - fallStart) / (landingTime - fallStart));
+      const tip = fall ** 1.46;
+      const grounded = smooth((time - landingTime) / .39);
+      const stagger = smooth((time - 4.60) / 3.85);
+      return {
+        x: 931 + stagger * 18 + 48 * tip + hit * 4 * (1 - fall),
+        y: 339.4 + 67 * fall ** 2 + hit * 2 * (1 - fall) + grounded * 2.7,
+        angle: (Math.sin(time * 2.5) * 1.6 + hit * 11 + 5 * stagger) * (1 - tip) + tip * (94 - grounded * 6),
+        hit, fall, grounded, stagger
+      };
+    }
+
+    const shots = shotTimes.map((time, index) => {
+      const start = muzzlePoint(time);
+      const opponent = tigaPose(time + flightTime);
+      const chest = rotatePoint(-9 + (index % 4) * 5, -33 + Math.sin(index * 1.98) * 8, opponent.angle);
+      return {
+        time, start, end: { x: opponent.x + chest.x * tigaScale, y: opponent.y + chest.y * tigaScale },
+        trail: make('path', byId('tracers'), { stroke: '#fdbd6c', 'stroke-width': 5, opacity: 0 }),
+        core: make('path', byId('tracers'), { stroke: '#ffefd0', 'stroke-width': 1.65, opacity: 0 }),
+        flash: make('circle', byId('impact-sparks'), { fill: 'url(#flash)', opacity: 0 }),
+        sparks: Array.from({ length: 7 }, () => ({
+          element: make('path', byId('impact-sparks'), { stroke: rand() > .5 ? '#fff7d8' : '#d78455', 'stroke-width': blend(1.1, 2.1, rand()), opacity: 0 }),
+          angle: rand() * tau, speed: blend(50, 180, rand())
+        })),
+        smoke: make('circle', byId('muzzle-smoke'), { fill: 'url(#powder)', opacity: 0 })
+      };
+    });
+    const landingSnow = Array.from({ length: 31 }, (_, i) => ({
+      element: make('circle', byId('landing-snow'), { fill: i < 13 ? 'url(#powder)' : '#eff9fd', opacity: 0 }),
+      startX: blend(926, 1056, rand()), speed: blend(-126, 130, rand()), height: blend(14, 50, rand()),
+      radius: i < 13 ? blend(12, 32, rand()) : blend(1, 4.2, rand()), delay: rand() * .24, dust: i < 13
+    }));
+
+    function animateBear(time) {
+      const pose = bearPose(time);
+      attrs(scene['bear-rider'], { transform: `translate(${pose.x} ${pose.y}) scale(${bearScale})` });
+      attrs(scene['bear-shadow'], { cx: pose.x + 18, cy: pose.y - pose.bob + 4, rx: 143 + pose.effort * 4 });
+      for (const leg of legs) {
+        const phase = (pose.stride + leg.offset) * tau;
+        const swing = Math.cos(phase) * leg.stride * pose.effort;
+        const lift = Math.max(0, Math.sin(phase)) * 10.5 * pose.effort;
+        attrs(leg.element, { transform: `translate(${leg.x} ${leg.y - lift}) rotate(${swing})` });
+      }
+      attrs(scene['bear-head'], { transform: `rotate(${Math.sin(pose.stride * tau * 2 + .8) * 1.8 * pose.effort} 76 -99)` });
+      attrs(scene.emperor, { transform: `translate(-15 ${pose.riderY}) rotate(${pose.riderAngle})` });
+      const wave = Math.sin(time * 4.5) * 8 + Math.sin(time * 2.4) * 6;
+      const tipX = -121 - Math.sin(time * 3.1) * 8;
+      const tipY = 1 + wave;
+      const hem = `M${tipX} ${tipY}Q-92 ${24 + wave * .58} -55 ${18 - wave * .25}L12 6`;
+      attrs(scene['cape-back'], { d: `M-24-60C-58-49-74 ${tipY - 2} ${tipX} ${tipY}Q-92 ${24 + wave * .58} -55 ${18 - wave * .25}L12 6 8-59Z` });
+      attrs(scene['cape-hem'], { d: hem });
+      attrs(scene['cape-fold'], { d: `M-29-47Q-63 ${3 + wave * .63} ${tipX + 12} ${tipY + 4}m47-2q31-13 43-35` });
+      attrs(scene['crown-beads'], { transform: `rotate(${Math.sin(time * 5.1) * 3.8} 8 -123)` });
+      const { angle, recoil } = weaponPose(time);
+      attrs(scene['weapon-pose'], { transform: `rotate(${angle})` });
+      attrs(scene.weapon, { transform: `translate(${-recoil * 5.1} 0)` });
+      for (const print of prints) {
+        const age = time - print.time;
+        const appeared = age >= 0 && print.time < 12.61;
+        const puff = appeared ? clamp(1 - age / .33) : 0;
+        attrs(print.element, { opacity: appeared ? (.34 + .56 * (1 - clamp(age / 19))) : 0 });
+        attrs(print.puff, { cx: print.x + age * 8, cy: print.y - 1 - age * 27,
+          r: Math.max(0, 6 + age * 23), opacity: puff * .69 });
+      }
+    }
+
+    function animateTiga(time) {
+      const pose = tigaPose(time);
+      const { x, y, angle, hit, fall, grounded, stagger } = pose;
+      const armSwing = Math.sin(time * 3.4) * 2.4;
+      attrs(scene.tiga, { transform: `translate(${x} ${y}) rotate(${angle}) scale(${tigaScale})` });
+      attrs(scene['tiga-shadow'], { cx: x + 5 + fall * 9, rx: 30 + fall * 64, ry: 5 + fall * 2, opacity: .40 - fall * .13 });
+      attrs(scene['tiga-head'], { transform: `rotate(${-9 - 6 * hit - 5 * stagger + fall * 17} 0 -69)` });
+      attrs(scene['tiga-left-arm'], { transform: `rotate(${armSwing + 8 * stagger + 32 * hit + fall * 63 - grounded * 43} -30 -54)` });
+      attrs(scene['tiga-right-arm'], { transform: `rotate(${-armSwing - 5 * stagger - 23 * hit - fall * 56 + grounded * 31} 30 -51)` });
+      attrs(scene['tiga-left-leg'], { transform: `rotate(${1.7 * Math.sin(time * 2.9) * (1 - fall) + fall * 10 - grounded * 9} -13 0)` });
+      attrs(scene['tiga-right-leg'], { transform: `rotate(${3 * stagger - fall * 14 + grounded * 8} 12 0)` });
+      attrs(scene['tiga-light'], { fill: time < fallStart ? '#a7fbff' : '#e6a4a6', opacity: 1 - fall * .49 - grounded * .29 });
+      for (const snow of landingSnow) {
+        const age = time - landingTime + .055 - snow.delay;
+        const flight = clamp(age / (snow.dust ? 1.32 : .76));
+        const visible = age >= 0 && flight < 1;
+        const height = snow.dust ? flight * snow.height : Math.sin(flight * Math.PI) * snow.height;
+        attrs(snow.element, { cx: snow.startX + snow.speed * flight, cy: 421 - height,
+          r: snow.radius * (snow.dust ? .8 + flight * 1.15 : 1),
+          opacity: visible ? (1 - flight) * smooth(flight * 13) * .92 : 0 });
+      }
+    }
+
+    function animateShots(time) {
+      const age = shotAge(time, 0);
+      const muzzle = muzzlePoint(time);
+      const flash = clamp(1 - age / .10);
+      const scale = .48 + flash * .47;
+      attrs(scene.muzzle, { transform: `translate(${muzzle.x} ${muzzle.y}) rotate(${muzzle.angle}) scale(${scale})`, opacity: flash });
+      for (const shot of shots) {
+        const elapsed = time - shot.time;
+        const flying = elapsed >= 0 && elapsed < flightTime;
+        const progress = clamp(elapsed / flightTime);
+        const tail = Math.max(0, progress - .29);
+        const fromX = blend(shot.start.x, shot.end.x, tail);
+        const fromY = blend(shot.start.y, shot.end.y, tail);
+        const toX = blend(shot.start.x, shot.end.x, progress);
+        const toY = blend(shot.start.y, shot.end.y, progress);
+        const path = `M${fromX} ${fromY}L${toX} ${toY}`;
+        attrs(shot.trail, { d: path, opacity: flying ? .32 : 0 });
+        attrs(shot.core, { d: path, opacity: flying ? .88 : 0 });
+        const impactAge = time - (shot.time + flightTime);
+        const sparked = impactAge >= 0 && impactAge < .33;
+        attrs(shot.flash, { cx: shot.end.x, cy: shot.end.y, r: 15 + clamp(impactAge / .17) * 17,
+          opacity: sparked ? clamp(1 - impactAge / .17) * .84 : 0 });
+        for (const spark of shot.sparks) {
+          const distance = clamp(impactAge / .33) * .33 * spark.speed;
+          const dx = Math.cos(spark.angle);
+          const dy = Math.sin(spark.angle);
+          const ovalX = shot.end.x + dx * distance;
+          const ovalY = shot.end.y + dy * distance + Math.max(0, impactAge) ** 2 * 102;
+          attrs(spark.element, { opacity: sparked ? .86 * (1 - impactAge / .33) : 0,
+            d: `M${ovalX} ${ovalY}l${dx * 7} ${dy * 7}` });
+        }
+        const smoke = clamp(elapsed / .88);
+        attrs(shot.smoke, { cx: shot.start.x + smoke * 30, cy: shot.start.y - smoke * 27,
+          r: 4 + smoke * 18, opacity: elapsed > 0 ? .36 * (1 - smoke) * smooth(smoke * 12) : 0 });
+      }
+    }
+
+    function animateWeather(time) {
+      attrs(scene['sky-motion'], { transform: `translate(${Math.sin(time * .34) * 13} ${Math.sin(time * .4) * 4})` });
+      attrs(scene['ground-wind'], { transform: `translate(${time * 4.1} 0)` });
+      for (const flake of flakes) {
+        const x = wrap(flake.x + time * flake.vx + Math.sin(time * 1.65 + flake.drift) * 11, 1232) - 16;
+        const y = wrap(flake.y + time * flake.vy, 589) - 12;
+        attrs(flake.element, { cx: x, cy: y, opacity: flake.opacity });
+      }
+    }
+
+    const progress = byId('progress');
+    const play = byId('play');
+    const elapsed = byId('elapsed');
+    const playLabel = byId('play-label');
+    const icons = ['play', 'pause', 'replay'].map((name) => byId(`${name}-icon`));
+    const chapters = Array.from(document.querySelectorAll('.chapters button'));
+    let time = 0;
+    let playing = false;
+    let scrubbing = false;
+    let frameId = 0;
+    let previousFrame = null;
+    let lastReadout = '';
+    let currentChapter = -1;
+    let buttonMode = '';
+
+    function updateControls() {
+      const mode = playing ? 'pause' : time >= duration ? 'replay' : 'play';
+      if (mode !== buttonMode) {
+        const label = { play: '播放', pause: '暂停', replay: '重播' }[mode];
+        playLabel.textContent = label;
+        play.setAttribute('aria-label', `${label}动画`);
+        for (const icon of icons) icon.toggleAttribute('hidden', icon.id !== `${mode}-icon`);
+        buttonMode = mode;
+      }
+      const chapter = time < fireStart ? 0 : time < fallStart ? 1 : 2;
+      if (chapter !== currentChapter) {
+        chapters.forEach((button, index) => button.setAttribute('aria-current', String(chapter === index)));
+        currentChapter = chapter;
+      }
+      const seconds = time.toFixed(1);
+      if (seconds !== lastReadout) {
+        elapsed.value = `00:${seconds.padStart(4, '0')}`;
+        progress.setAttribute('aria-valuetext', `${seconds} 秒，共 ${duration} 秒`);
+        lastReadout = seconds;
+      }
+      progress.value = time.toFixed(2);
+      progress.style.setProperty('--progress', `${100 * time / duration}%`);
+    }
+
+    function render() {
+      animateWeather(time);
+      animateBear(time);
+      animateTiga(time);
+      animateShots(time);
+      updateControls();
+    }
+
+    function tick(now) {
+      if (!playing) return;
+      if (!scrubbing && previousFrame !== null) time = Math.min(duration, time + Math.min(.08, (now - previousFrame) / 1000));
+      previousFrame = now;
+      if (time >= duration) playing = false;
+      if (!scrubbing) render();
+      frameId = playing ? requestAnimationFrame(tick) : 0;
+    }
+
+    function togglePlayback() {
+      playing = !playing;
+      if (playing) {
+        if (time >= duration) time = 0;
+        previousFrame = null;
+        frameId = requestAnimationFrame(tick);
+      } else {
+        cancelAnimationFrame(frameId);
+        frameId = 0;
+      }
+      render();
+    }
+
+    function seek(value) {
+      time = Math.max(0, Math.min(duration, value));
+      if (time >= duration && playing) {
+        playing = false;
+        cancelAnimationFrame(frameId);
+        frameId = 0;
+      }
+      render();
+    }
+
+    play.addEventListener('click', togglePlayback);
+    progress.addEventListener('input', () => seek(progress.valueAsNumber));
+    progress.addEventListener('pointerdown', () => { scrubbing = true; });
+    function stopScrubbing() {
+      scrubbing = false;
+      previousFrame = null;
+    }
+    window.addEventListener('pointerup', stopScrubbing);
+    window.addEventListener('pointercancel', stopScrubbing);
+    window.addEventListener('blur', stopScrubbing);
+    chapters.forEach((button) => button.addEventListener('click', () => seek(Number(button.dataset.time))));
+    document.addEventListener('keydown', (event) => {
+      if (event.code !== 'Space' || event.altKey || event.ctrlKey || event.metaKey ||
+          event.target.closest?.('button, input:not([type=range]), a, textarea, select, [contenteditable]')) return;
+      event.preventDefault();
+      if (!event.repeat) togglePlayback();
+    });
+    render();
+  })();
+</script>
+</body>
+</html>
